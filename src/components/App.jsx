@@ -16,8 +16,6 @@ export const App = () => {
   // const [language, setLanguage] = useState('en')
 
   useEffect(() => {
-    const controller = new AbortController();
-
     async function fetchData() {
       try {
         if (searchQuery !== null) {
@@ -25,7 +23,6 @@ export const App = () => {
           const data = await getData({
             searchQuery,
             currentPage,
-            signal: controller.signal,
           });
 
           // First SearchQuery change
@@ -48,10 +45,6 @@ export const App = () => {
       }
     }
     fetchData();
-
-    return () => {
-      controller.abort();
-    };
   }, [searchQuery, currentPage]);
 
   const handleSubmit = query => {
