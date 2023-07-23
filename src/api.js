@@ -6,6 +6,7 @@ export default async function getData({
   searchQuery = '',
   currentPage = 1,
   language = 'en',
+  signal,
 } = {}) {
   try {
     const params = new URLSearchParams({
@@ -15,11 +16,16 @@ export default async function getData({
       lang: language,
     });
     const response = await axios.get(
-      `?key=${process.env.REACT_APP_API_KEY}&image_type=photo&orientation=horizontal&safesearch=true&${params}`
+      `?key=${process.env.REACT_APP_API_KEY}&image_type=photo&orientation=horizontal&safesearch=true&${params}`,
+      { signal }
     );
 
     return response.data;
   } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('Aborted');
+      return;
+    }
     if (err.request.status === 400) return;
     console.log(err);
   }

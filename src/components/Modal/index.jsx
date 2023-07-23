@@ -1,69 +1,64 @@
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+import { useEffect, useState } from 'react';
 
 import styles from './Modal.module.css';
 import { PuffLoader } from 'react-spinners';
 
-export class Modal extends Component {
-  static propTypes = {
-    largeImage: PropTypes.string,
-    onClickExit: PropTypes.func,
-  };
-  state = {
-    loading: true,
+const Modal = ({ largeImage, onClickExit }) => {
+  const [loading, setLoading] = useState(true);
+
+  const handleLoad = () => {
+    setLoading(false);
   };
 
-  handleLoad = () => {
-    this.setState({ loading: false });
-  };
-
-  removeModal = () => {
-    const { onClickExit } = this.props;
+  const removeModal = () => {
     document.documentElement.classList.remove('active-modal');
     document.body.style.paddingRight = '';
     onClickExit('', -1);
   };
 
-  handleOverlayClick = e => {
+  const handleOverlayClick = e => {
     const { nodeName } = e.target;
     if (nodeName === 'DIV') {
-      this.removeModal();
+      removeModal();
     }
   };
 
-  handleEscapeKeyDown = e => {
+  const handleEscapeKey = e => {
     if (e.key === 'Escape') {
-      this.removeModal();
+      removeModal();
     }
   };
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.handleEscapeKeyDown);
-  }
+  useEffect(() => {
+    document.addEventListener('keydown', handleEscapeKey);
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleEscapeKeyDown);
-  }
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  render() {
-    const { loading } = this.state;
-    const { largeImage } = this.props;
-
-    return (
-      <div className={styles.overlay} onClick={this.handleOverlayClick}>
-        <div className={styles.modal}>
-          {loading && <PuffLoader color="#3da7db" loading={loading} />}{' '}
-          <img
-            onKeyDown={this.handleEscapeKey}
-            className={styles.img}
-            src={largeImage}
-            style={loading ? { display: 'none' } : {}}
-            alt=""
-            onLoad={this.handleLoad}
-          />
-        </div>
+  return (
+    <div className={styles.overlay} onClick={handleOverlayClick}>
+      <div className={styles.modal}>
+        {loading && <PuffLoader color="#3da7db" loading={loading} />}{' '}
+        <img
+          onKeyDown={handleEscapeKey}
+          className={styles.img}
+          src={largeImage}
+          style={loading ? { display: 'none' } : {}}
+          alt=""
+          onLoad={handleLoad}
+        />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
+
+Modal.propTypes = {
+  largeImage: PropTypes.string,
+  onClickExit: PropTypes.func,
+};
+
 export default Modal;

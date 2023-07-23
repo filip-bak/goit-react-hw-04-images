@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useEffect, useState } from 'react';
 
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
@@ -7,34 +7,66 @@ import getData, { getTotalPages } from 'api';
 import DotsLoader from './DotsLoader';
 import Placeholder from './Placeholder';
 
-export class App extends Component {
-  state = {
-    images: [],
-    loading: false,
-    currentPage: 0,
-    searchQuery: null,
-    totalPages: 0,
-    language: 'en',
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchQuery, setSearchQuery] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  // const [language, setLanguage] = useState('en')
 
-  handleSubmit = query => {
-    const { searchQuery } = this.state;
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function fetchData() {
+      try {
+        if (searchQuery !== null) {
+          setIsLoading(true);
+          const data = await getData({
+            searchQuery,
+            currentPage,
+            signal: controller.signal,
+          });
+
+          // First SearchQuery change
+          if (typeof searchQuery === 'string' && currentPage === 1) {
+            setImages(data.hits);
+            setTotalPages(getTotalPages(data.totalHits, 12));
+            window.scrollTo(0, 0);
+            return;
+          }
+
+          // On load more pictures
+          if (currentPage > 1) {
+            setImages(state => [...state, ...data.hits]);
+          }
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+
+    return () => {
+      controller.abort();
+    };
+  }, [searchQuery, currentPage]);
+
+  const handleSubmit = query => {
     if (searchQuery === query) {
       return;
     }
-    this.setState({ searchQuery: query, currentPage: 1, loading: true });
+    setCurrentPage(1);
+    setSearchQuery(query);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({
-      currentPage: prevState.currentPage + 1,
-      loading: true,
-    }));
+  const handleLoadMore = () => {
+    setCurrentPage(state => state + 1);
   };
 
-  ifShowButton = () => {
-    const { images, searchQuery, currentPage, totalPages } = this.state;
-
+  const ifShowButton = () => {
     const noMoreImages = totalPages === currentPage;
 
     if (images.length < 12 || noMoreImages) {
@@ -44,70 +76,25 @@ export class App extends Component {
     }
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    try {
-      const { searchQuery, currentPage, totalPages } = this.state;
+  const ifNoImagesFound =
+    images.length === 0 &&
+    currentPage === 1 &&
+    totalPages === 0 &&
+    searchQuery !== '';
 
-      if (
-        prevState.searchQuery !== searchQuery ||
-        prevState.currentPage !== currentPage
-      ) {
-        const data = await getData({
-          searchQuery,
-          currentPage,
-        });
+  return (
+    <div className="wrapper">
+      <Searchbar onSubmit={handleSubmit} />
+      <ImageGallery images={images} />
 
-        // On searchQuery change get new state
-        if (prevState.searchQuery !== searchQuery) {
-          this.setState({
-            images: data.hits,
-            totalPages: getTotalPages(data.totalHits, 12),
-            loading: false,
-          });
-
-          window.scrollTo(0, 0);
-
-          return;
-        }
-
-        if (totalPages < currentPage) {
-          this.setState({ currentPage: totalPages + 1, loading: false });
-
-          return;
-        }
-
-        this.setState(prevState => ({
-          ...prevState,
-          loading: false,
-          images: [...prevState.images, ...data.hits],
-        }));
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
-
-  render() {
-    const { images, loading, currentPage, totalPages } = this.state;
-    const ifNoImagesFound =
-      images.length === 0 &&
-      currentPage === 1 &&
-      totalPages === 0 &&
-      loading === false;
-
-    return (
-      <div className="wrapper">
-        <Searchbar onSubmit={this.handleSubmit} />
-        <ImageGallery images={images} />
-
-        {ifNoImagesFound && <Placeholder title="Sorry, no images found" />}
-
-        {loading ? (
-          <DotsLoader loading={loading} />
-        ) : (
-          this.ifShowButton() && <Button onLoadMore={this.handleLoadMore} />
-        )}
-      </div>
-    );
-  }
-}
+      {isLoading ? (
+        <DotsLoader loading={isLoading} />
+      ) : (
+        <>
+          {ifNoImagesFound && <Placeholder title="Sorry, no images found" />}
+          {ifShowButton() && <Button onLoadMore={handleLoadMore} />}
+        </>
+      )}
+    </div>
+  );
+};

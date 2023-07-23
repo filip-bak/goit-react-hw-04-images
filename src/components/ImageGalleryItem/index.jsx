@@ -1,17 +1,13 @@
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
+import { useState } from 'react';
 
 import styles from './ImageGalleryItem.module.css';
 
-class ImageGalleryItem extends Component {
-  static propTypes = { src: PropTypes.string, onClick: PropTypes.func };
+const ImageGalleryItem = ({ src, largeSrc, onClick }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  state = {
-    loaded: false,
-    error: false,
-  };
-
-  scrollLock = () => {
+  const handleScrollLock = () => {
     const documentWidth = document.documentElement.clientWidth;
     const windowWidth = window.innerWidth;
     const scrollBarWidth = windowWidth - documentWidth;
@@ -20,48 +16,47 @@ class ImageGalleryItem extends Component {
     document.body.style.paddingRight = `${scrollBarWidth}px`;
   };
 
-  handleClick = () => {
-    const { onClick } = this.props;
-
-    this.scrollLock();
+  const handleClick = () => {
+    handleScrollLock();
     onClick();
   };
 
-  handleLoad = () => {
-    this.setState({ loaded: true });
+  const handleLoad = () => {
+    setLoading(false);
   };
 
-  handleError = () => {
-    this.setState({ error: true });
+  const handleError = () => {
+    setError(true);
   };
 
-  render() {
-    const { src, largeSrc } = this.props;
-    const { loaded, error } = this.state;
-    // onClick
-    return (
-      <>
-        {error ? (
-          <li className={styles.placeholder}></li>
-        ) : (
-          <li
-            className={loaded ? `${styles.container}` : `${styles.placeholder}`}
-          >
-            <img
-              className={styles.image}
-              style={loaded ? {} : { visibility: 'hidden' }}
-              src={src}
-              data-src={largeSrc}
-              alt=""
-              onLoad={this.handleLoad}
-              onError={this.handleError}
-              onClick={this.handleClick}
-            />
-          </li>
-        )}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      {error ? (
+        <li className={styles.placeholder}></li>
+      ) : (
+        <li
+          className={loading ? `${styles.placeholder}` : `${styles.container}`}
+        >
+          <img
+            className={styles.image}
+            style={loading ? { visibility: 'hidden' } : {}}
+            src={src}
+            data-src={largeSrc}
+            alt=""
+            onLoad={handleLoad}
+            onError={handleError}
+            onClick={handleClick}
+          />
+        </li>
+      )}
+    </>
+  );
+};
+
+ImageGalleryItem.propTypes = {
+  src: PropTypes.string,
+  largeSrc: PropTypes.string,
+  onClick: PropTypes.func,
+};
 
 export default ImageGalleryItem;
